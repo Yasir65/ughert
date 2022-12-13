@@ -1,7 +1,7 @@
 #!/bin/bash
 
 AUR="https://aur.archlinux.org"
-GIT_CLONE_DIR="$HOME/.local/lair"
+GIT_CLONE_DIR="$HOME/.local/ughert"
 
 # Make GIT_CLONE_DIR if dosen't exist.
 mkdir -p $GIT_CLONE_DIR
