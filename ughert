@@ -21,14 +21,6 @@ error() {
 	echo -e "\e[31m\e[1mError ==> $1\e[0m"
 }
 
-# Check if the user provided $2
-if [ "$2" = "" ]
-then
-	error "PACKAGE_NAME was not provided."
-	usage
-	exit 2
-fi
-
 # Function to print usage.
 usage() {
 	echo "Usage: $0 [ARGUMENT] [PACKAGE_NAME]"
@@ -39,6 +31,14 @@ usage() {
 	echo "	updateall, ua	Update all AUR packages."
 	echo "	updatesys, us	Update the system."
 }
+
+# Check if the user provided $2
+if [ "$2" = "" ]
+then
+	error "PACKAGE_NAME was not provided."
+	usage
+	exit 2
+fi
 
 # Function to get PGP keys.
 get_key() {
