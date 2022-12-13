@@ -39,6 +39,44 @@ usage() {
 	echo "	updatesys, us	Update the system."
 }
 
+# Function to get PGP keys.
+get_key() {
+	pacman-key --list-keys | grep -q "$1"
+	
+	if [ $? -ne 0 ]
+	then
+		info "PGP Key $1 not found."
+		info "Would you like to add the key? (y/n)"
+		read -n1 answer
+		
+		if [ "$answer" = "y" ]
+		then
+			rk=1
+
+		elif [ "$answer" = "Y" ]
+		then
+			rk=1
+
+		else
+			info "Exiting ..."
+			exit 0
+		fi
+
+		gpg --receive-keys "$1" && sudo pacman-key -r "$1" && sudo pacman-key --lsign-key "$1"
+
+		if [ $? -ne 0 ]
+		then
+			error "Failed to get PGP keys."
+			info "Exiting ..."
+			exit 1
+		fi
+	
+	else
+		info "$1 Key already present."
+
+	fi
+}
+
 # Function to install a package from AUR.
 install() {
 	if [[ "$1" == *"://"* ]]
@@ -64,6 +102,17 @@ install() {
 	
 	mv $PWD $GIT_CLONE_DIR/$pkgname
 
+	if [ "$validpgpkeys" != "" ]
+	then
+		info "Valid PGP keys array detected."
+		info "Adding keys ..."
+		
+		for key in ${validpgpkeys[@]}
+		do
+			get_key $key
+		done
+
+	fi
 	info "Installing package $pkgname"
 	makepkg -si
 
