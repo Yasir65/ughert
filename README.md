@@ -1,0 +1,2 @@
+# ughert
+Minimal AUR Helper
