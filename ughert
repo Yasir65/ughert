@@ -1,0 +1,149 @@
+#!/bin/bash
+
+AUR="https://aur.archlinux.org"
+GIT_CLONE_DIR="$HOME/.local/lair"
+
+# Make GIT_CLONE_DIR if dosen't exist.
+mkdir -p $GIT_CLONE_DIR
+
+# Function to print info.
+info() {
+	echo -e "\e[32m\e[1mInfo ==> $1\e[0m"
+}
+
+# Function to print warning.
+warning() {
+	echo -e "\e[33m\e[1mWarning ==> $1\e[0m"
+}
+
+# Function to print error.
+error() {
+	echo -e "\e[31m\e[1mError ==> $1\e[0m"
+}
+
+# Check if the user provided $2
+if [ "$2" = "" ]
+then
+	error "PACKAGE_NAME not provided."
+	exit 2
+fi
+
+# Function to print usage.
+usage() {
+	echo "Usage: $0 [ARGUMENT] [PACKAGE_NAME]"
+	echo "ARGUMENTS:"
+	echo "	install, i	Install a AUR package. (You can specify a custom git url.)"
+	echo "	uninstall, un	Uninstall a package."
+	echo "	update, u	Update a package."
+	echo "	updateall, ua	Update all AUR packages."
+	echo "	updatesys, us	Update the system."
+}
+
+# Function to install a package from AUR.
+install() {
+	if [[ "$1" == *"://"* ]]
+	then
+		info ":// in PACKAGE_NAME detected. Assuming it's a git url."
+		info "Cloning into $GIT_CLONE_DIR/$(basename $1) ..."
+		git clone $1 $GIT_CLONE_DIR/$(basename $1) -q 2> /dev/null
+		cd $GIT_CLONE_DIR/$(basename $1)
+	else
+		info "Cloning into $GIT_CLONE_DIR/$1 ..."
+		git clone $AUR/$1 $GIT_CLONE_DIR/$1
+		cd $GIT_CLONE_DIR/$1
+	fi
+	
+	ls | grep -q "PKGBUILD"
+	
+	if [ $? -ne 0 ]
+	then
+		error "The PKGBUILD file dosen't exist or is not readable."
+		exit 1
+	fi
+	source PKGBUILD
+	
+	mv $PWD $GIT_CLONE_DIR/$pkgname
+
+	info "Installing package $pkgname"
+	makepkg -si
+
+	cd $OLDPWD
+}
+
+# Function to uninstall a package.
+uninstall() {
+	if [ -d "$GIT_CLONE_DIR/$1" ]
+	then
+		info "Are you sure that you want to DELETE $GIT_CLONE_DIR/$1 ?"
+		warning "This will make the package UNUPDATEBLE if you don't uninstall it in the pacman prompt."
+		info "(y/n) ?"
+		read -n1 answer
+		echo ""
+		if [ "$answer" = "y" ]
+		then
+			rm -rf $GIT_CLONE_DIR/$1
+		elif [ "$answer" = "Y" ]
+		then
+			rm -rf $GIT_CLONE_DIR/$1
+		else
+			info "Exiting ..."
+			exit 0
+		fi
+		sudo pacman -R $1
+	else
+		warning "$GIT_CLONE_DIR/$1 not found... Continueing anyway."
+		sudo pacman -R $1
+	fi
+}
+
+# Function to update a package.
+update() {
+	if [ -d "$GIT_CLONE_DIR/$1" ]
+	then
+		cd $GIT_CLONE_DIR/$1
+		info "Pulling $1 ..."
+		git pull | tr -d "\n" | grep -q "Already up to date."
+		if [ $? -eq 0 ]
+		then
+			error "$1 is already up to date."
+			info "Exiting ..."
+			exit 1
+		else
+			info "Updating package $1"
+			makepkg -si
+		fi
+		cd $OLDPWD
+	else
+		warning "$GIT_CLONE_DIR/$1 not found... Will try to synchronize."
+		pacman -Sy $1
+	fi
+}
+
+if [ "$1" = "install" ]
+then
+	install $2
+
+elif [ "$1" = "i" ]
+then
+	install $2
+
+elif [ "$1" = "uninstall" ]
+then
+	uninstall $2
+
+elif [ "$1" = "un" ]
+then
+	uninstall $2
+
+elif [ "$1" = "update" ]
+then
+	update $2
+
+elif [ "$1" = "u" ]
+then
+	update $2
+
+else
+	error "Invalid option."
+	exit 2
+fi
