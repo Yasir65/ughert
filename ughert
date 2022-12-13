@@ -24,7 +24,8 @@ error() {
 # Check if the user provided $2
 if [ "$2" = "" ]
 then
-	error "PACKAGE_NAME not provided."
+	error "PACKAGE_NAME was not provided."
+	usage
 	exit 2
 fi
 
@@ -194,5 +195,6 @@ then
 
 else
 	error "Invalid option."
+	usage
 	exit 2
 fi
